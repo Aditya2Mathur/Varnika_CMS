@@ -399,7 +399,11 @@ async function loadDashboardData() {
             globalRecords = offlineData;
             dataLoaded = true;
             updateDashboardCards();
-            showToast("You are offline. Showing cached data only.", "warning");
+            const errMsg = err.message || err.toString() || 'Unknown network error';
+            showToast("Database connection failed: " + errMsg, "warning");
+        } else {
+             const errMsg = err.message || err.toString() || 'Unknown network error';
+             showToast("Could not sync with database: " + errMsg, "warning");
         }
     }
 }
