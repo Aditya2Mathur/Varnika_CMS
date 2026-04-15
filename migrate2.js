@@ -40,7 +40,7 @@ async function migrate() {
             weight: r['Weight'] ? String(r['Weight']) : null
         };
 
-        const { error } = await supabase.from('appointments').insert([payload]);
+        const { error } = await supabase.from('Varnika_database_CMS').insert([payload]);
         if (error) {
            console.error("Error inserting:", r['Appointment ID'], error.message);
         } else {

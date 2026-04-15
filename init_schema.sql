@@ -3,7 +3,7 @@
 -- Run this in the Supabase SQL Editor
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS public.appointments (
+CREATE TABLE IF NOT EXISTS public."Varnika_database_CMS" (
     appointment_id TEXT PRIMARY KEY,
     patient_id TEXT,
     name TEXT,
@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     valid_till TEXT,
     visit_count NUMERIC DEFAULT 1,
     fee NUMERIC DEFAULT 400,
-    weight TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

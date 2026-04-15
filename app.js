@@ -123,7 +123,7 @@ async function processOfflineQueue() {
     
     for(let i=0; i<queue.length; i++) {
         try {
-            const { error } = await supabaseClient.from('appointments').insert([{
+            const { error } = await supabaseClient.from('Varnika_database_CMS').insert([{
                 appointment_id: queue[i].appointmentId,
                 patient_id: queue[i].patientId,
                 name: queue[i].name,
@@ -350,7 +350,7 @@ async function loadDashboardData() {
     
     // 2. Background Revalidation (Network Fetch)
     try {
-        const { data: sbData, error } = await supabaseClient.from('appointments').select('*').order('created_at', { ascending: true });
+        const { data: sbData, error } = await supabaseClient.from('Varnika_database_CMS').select('*').order('created_at', { ascending: true });
         if (error) throw error;
         
         // Map Supabase snake_case back to original structure
@@ -527,7 +527,7 @@ async function confirmAndSaveRx() {
         if (!navigator.onLine) {
             throw new Error("Offline");
         }
-        const { error } = await supabaseClient.from('appointments').insert([{
+        const { error } = await supabaseClient.from('Varnika_database_CMS').insert([{
             appointment_id: pendingFormData.appointmentId,
             patient_id: pendingFormData.patientId,
             name: pendingFormData.name,
