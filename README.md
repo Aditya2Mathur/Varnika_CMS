@@ -113,7 +113,7 @@ If the internet is unavailable while saving:
 - It is queued in `magnum_offline_sync`
 - The app automatically retries syncing when the browser comes back online
 
-Cached data is stored in `magnum_data_cache` for faster dashboard loading.
+Cached data is stored in `magnum_supabase_cache` for faster dashboard loading, and the app clears the old spreadsheet cache automatically.
 
 ## Data Source
 

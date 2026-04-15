@@ -2,7 +2,7 @@
 
 /* Auth Logic */
 const validHashes = [
-    { u: '0019cdce219b13c9', p: '00029e9e1a3dbc2f' }, 
+    { u: '001b7edfdd8f2070', p: '00140bfcef8252fa' }, 
     { u: '000a25f017a9e9f5', p: '0010d2e339e1455a' }, 
     { u: '000ff39d654dc659', p: '0004aced63eed807' }  
 ];
@@ -71,7 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx3LlPwOT6aKtOuHzbUtesX-bpIyfLV-PcpaIW22rEVmtPA-VIAfnouZ8lxaHW17nN/exec';
+// const Supabase
+const SUPABASE_URL = 'https://vkeluucysoqmqwogkubf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZWx1dWN5c29xbXF3b2drdWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODk4ODgsImV4cCI6MjA5MTc2NTg4OH0.3iEPyQNWgR-MQABU7VxPSvWch-irEwOC9pPodKcJsdY';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_CACHE_KEY = 'magnum_supabase_cache';
+const LEGACY_CACHE_KEYS = ['magnum_data_cache'];
+
+function clearLegacySpreadsheetData() {
+    LEGACY_CACHE_KEYS.forEach(key => localStorage.removeItem(key));
+}
 
 /* Offline Sync Logic */
 function showToast(msg, type='info') {
@@ -114,12 +123,20 @@ async function processOfflineQueue() {
     
     for(let i=0; i<queue.length; i++) {
         try {
-            await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(queue[i]),
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                mode: 'no-cors'
-            });
+            const { error } = await supabaseClient.from('appointments').insert([{
+                appointment_id: queue[i].appointmentId,
+                patient_id: queue[i].patientId,
+                name: queue[i].name,
+                age: queue[i].age,
+                gender: queue[i].gender,
+                phone: queue[i].phone,
+                address: queue[i].address,
+                symptoms: queue[i].symptoms,
+                valid_till: queue[i].validTill,
+                visit_count: queue[i].visitCount,
+                fee: queue[i].fee
+            }]);
+            if (error) throw error;
             successCount++;
         } catch(e) {
             remaining.push(queue[i]);
@@ -315,8 +332,10 @@ function evaluatePatientMatch() {
 }
 
 async function loadDashboardData() {
+    clearLegacySpreadsheetData();
+
     let offlineData = JSON.parse(localStorage.getItem('magnum_offline_sync') || '[]');
-    let cachedData = JSON.parse(localStorage.getItem('magnum_data_cache') || 'null');
+    let cachedData = JSON.parse(localStorage.getItem(SUPABASE_CACHE_KEY) || 'null');
 
     // 1. SWR: Instant load from cache
     if (cachedData) {
@@ -331,10 +350,37 @@ async function loadDashboardData() {
     
     // 2. Background Revalidation (Network Fetch)
     try {
-        const response = await fetch(GOOGLE_SCRIPT_URL);
-        const data = await response.json() || [];
+        const { data: sbData, error } = await supabaseClient.from('appointments').select('*').order('created_at', { ascending: true });
+        if (error) throw error;
         
-        localStorage.setItem('magnum_data_cache', JSON.stringify(data));
+        // Map Supabase snake_case back to original structure
+        const data = sbData.map(row => ({
+            'Timestamp': row.created_at,
+            'Appointment ID': row.appointment_id,
+            'Patient ID': row.patient_id,
+            'Name': row.name,
+            'Age': row.age,
+            'Gender': row.gender,
+            'Phone': row.phone,
+            'Address': row.address,
+            'Symptoms': row.symptoms,
+            'Valid Till': row.valid_till,
+            'Visit Count': row.visit_count,
+            'Fee': row.fee,
+            appointmentId: row.appointment_id,
+            patientId: row.patient_id,
+            name: row.name,
+            age: row.age,
+            gender: row.gender,
+            phone: row.phone,
+            address: row.address,
+            symptoms: row.symptoms,
+            validTill: row.valid_till,
+            visitCount: row.visit_count,
+            fee: row.fee
+        }));
+        
+        localStorage.setItem(SUPABASE_CACHE_KEY, JSON.stringify(data));
         
         globalRecords = data.concat(offlineData);
         dataLoaded = true;
@@ -477,12 +523,20 @@ async function confirmAndSaveRx() {
         if (!navigator.onLine) {
             throw new Error("Offline");
         }
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(pendingFormData),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            mode: 'no-cors'
-        });
+        const { error } = await supabaseClient.from('appointments').insert([{
+            appointment_id: pendingFormData.appointmentId,
+            patient_id: pendingFormData.patientId,
+            name: pendingFormData.name,
+            age: pendingFormData.age,
+            gender: pendingFormData.gender,
+            phone: pendingFormData.phone,
+            address: pendingFormData.address,
+            symptoms: pendingFormData.symptoms,
+            valid_till: pendingFormData.validTill,
+            visit_count: pendingFormData.visitCount,
+            fee: pendingFormData.fee
+        }]);
+        if (error) throw error;
     } catch(err) {
         console.warn("Network offline or fetch failed, queueing offline...", err);
         queueForSync(pendingFormData);
